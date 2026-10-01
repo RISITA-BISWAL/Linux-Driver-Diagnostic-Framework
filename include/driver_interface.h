@@ -13,6 +13,7 @@ public:
     std::string readData();
     bool getDataSize(unsigned int& size);
     void closeDevice();
+    int getFd() const;
 
 private:
     int fd;

@@ -29,7 +29,7 @@ bool DriverInterface::writeData(const std::string& data)
 
     ssize_t bytesWritten = write(fd, data.c_str(), data.size());
 
-    return bytesWritten == static_cast<ssize_t>(data.size());
+    return bytesWritten > 0;
 }
 
 std::string DriverInterface::readData()
@@ -65,4 +65,9 @@ void DriverInterface::closeDevice()
         close(fd);
         fd = -1;
     }
+}
+
+int DriverInterface::getFd() const
+{
+    return fd;
 }

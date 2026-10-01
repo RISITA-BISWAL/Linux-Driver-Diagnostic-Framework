@@ -2,9 +2,15 @@
  Linux Driver Diagnostic Report
 ====================================
 
-Total Tests : 3
-Passed      : 3
+Test Details:
+ - Functional Driver Test             : PASS
+ - Error Handling Test                : PASS
+ - Boundary and Buffer Limit Test     : PASS
+ - Stress Test                        : PASS
+
+Total Tests : 4
+Passed      : 4
 Failed      : 0
-Pass Rate   : 100%
+Pass Rate   : 100.0%
 
 Status: ALL TESTS PASSED

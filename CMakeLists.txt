@@ -14,6 +14,7 @@ add_executable(driver-test
     src/testing/functional_test.cpp
     src/testing/test_controller.cpp
     src/testing/error_test.cpp
+    src/testing/boundary_test.cpp
     src/testing/stress_test.cpp
     src/diagnostics/diagnostic_manager.cpp
     src/logging/logger.cpp

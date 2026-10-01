@@ -5,6 +5,7 @@
 #include <linux/module.h>
 #include <linux/uaccess.h>
 #include <linux/ioctl.h>
+#include <linux/mutex.h>
 
 #include "vtest_ioctl.h"
 
@@ -13,6 +14,7 @@
 
 static char device_buffer[BUFFER_SIZE];
 static size_t data_size;
+static DEFINE_MUTEX(device_mutex);
 
 static int vtest_open(struct inode *inode, struct file *file)
 {
@@ -28,18 +30,27 @@ static ssize_t vtest_read(struct file *file,
     size_t available;
     size_t bytes_to_copy;
 
-    if (*offset >= data_size)
+    if (mutex_lock_interruptible(&device_mutex))
+        return -ERESTARTSYS;
+
+    if (*offset >= data_size) {
+        mutex_unlock(&device_mutex);
         return 0;
+    }
 
     available = data_size - *offset;
     bytes_to_copy = min(count, available);
 
-    if (copy_to_user(buffer, device_buffer + *offset, bytes_to_copy))
+    if (copy_to_user(buffer, device_buffer + *offset, bytes_to_copy)) {
+        mutex_unlock(&device_mutex);
         return -EFAULT;
+    }
 
     *offset += bytes_to_copy;
 
     pr_info("vtest_driver: read %zu bytes\n", bytes_to_copy);
+
+    mutex_unlock(&device_mutex);
 
     return bytes_to_copy;
 }
@@ -51,15 +62,22 @@ static ssize_t vtest_write(struct file *file,
 {
     size_t bytes_to_copy;
 
+    if (mutex_lock_interruptible(&device_mutex))
+        return -ERESTARTSYS;
+
     bytes_to_copy = min(count, (size_t)(BUFFER_SIZE - 1));
 
-    if (copy_from_user(device_buffer, buffer, bytes_to_copy))
+    if (copy_from_user(device_buffer, buffer, bytes_to_copy)) {
+        mutex_unlock(&device_mutex);
         return -EFAULT;
+    }
 
     device_buffer[bytes_to_copy] = '\0';
     data_size = bytes_to_copy;
 
     pr_info("vtest_driver: wrote %zu bytes\n", bytes_to_copy);
+
+    mutex_unlock(&device_mutex);
 
     return bytes_to_copy;
 }
@@ -73,16 +91,21 @@ static long vtest_ioctl(struct file *file,
     switch (cmd)
     {
         case VTEST_IOCTL_GET_SIZE:
+            if (mutex_lock_interruptible(&device_mutex))
+                return -ERESTARTSYS;
+
             size = data_size;
 
             if (copy_to_user((unsigned int __user *)arg,
                              &size,
                              sizeof(size)))
             {
+                mutex_unlock(&device_mutex);
                 return -EFAULT;
             }
 
             pr_info("vtest_driver: ioctl returned data size %u\n", size);
+            mutex_unlock(&device_mutex);
             return 0;
 
         default:

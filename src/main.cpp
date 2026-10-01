@@ -1,11 +1,13 @@
 #include "functional_test.h"
 #include "error_test.h"
+#include "boundary_test.h"
 #include "stress_test.h"
 #include "test_controller.h"
 #include "diagnostic_manager.h"
 #include "report_generator.h"
 
 #include <iostream>
+#include <vector>
 
 int main()
 {
@@ -25,32 +27,24 @@ int main()
 
     FunctionalTest functionalTest;
     ErrorTest errorTest;
+    BoundaryTest boundaryTest;
     StressTest stressTest;
 
-    bool functionalResult = controller.runTest(functionalTest);
-    bool errorResult = controller.runTest(errorTest);
-    bool stressResult = controller.runTest(stressTest);
-
-    int passed = 0;
-    int failed = 0;
-
-    if (functionalResult)
-        passed++;
-    else
-        failed++;
-
-    if (errorResult)
-        passed++;
-    else
-        failed++;
-
-    if (stressResult)
-        passed++;
-    else
-        failed++;
+    std::vector<TestResult> testResults;
+    testResults.push_back({functionalTest.getName(), controller.runTest(functionalTest)});
+    testResults.push_back({errorTest.getName(), controller.runTest(errorTest)});
+    testResults.push_back({boundaryTest.getName(), controller.runTest(boundaryTest)});
+    testResults.push_back({stressTest.getName(), controller.runTest(stressTest)});
 
     ReportGenerator reportGenerator;
-    reportGenerator.generateReport(passed, failed);
+    reportGenerator.generateReport(testResults);
+
+    int failed = 0;
+    for (const auto& res : testResults)
+    {
+        if (!res.passed)
+            failed++;
+    }
 
     return failed == 0 ? 0 : 1;
 }

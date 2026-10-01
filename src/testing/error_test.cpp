@@ -1,6 +1,8 @@
 #include "error_test.h"
 #include "driver_interface.h"
 
+#include <cerrno>
+#include <cstring>
 #include <iostream>
 #include <sys/ioctl.h>
 
@@ -14,17 +16,21 @@ bool ErrorTest::run()
         return false;
     }
 
-    int result = ioctl(-1, 999, nullptr);
+    const unsigned long INVALID_IOCTL = 0xDEADBEEF;
+    int result = ioctl(driver.getFd(), INVALID_IOCTL, nullptr);
+    int savedErrno = errno;
 
     driver.closeDevice();
 
-    if (result == -1)
+    if (result == -1 && savedErrno == EINVAL)
     {
         std::cout << "Invalid ioctl test: PASS\n";
         return true;
     }
 
-    std::cerr << "Invalid ioctl test: FAIL\n";
+    std::cerr << "Invalid ioctl test: FAIL (expected result=-1, errno=EINVAL, got result="
+              << result << ", errno=" << savedErrno
+              << " [" << std::strerror(savedErrno) << "])\n";
     return false;
 }
 
